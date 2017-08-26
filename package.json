@@ -39,7 +39,7 @@
     "lodash": "^4.13.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.0.15",
+    "babel-cli": "^6.26.0",
     "babel-eslint": "^6.1.2",
     "babel-plugin-syntax-object-rest-spread": "^6.0.14",
     "babel-plugin-transform-object-rest-spread": "^6.0.14",
