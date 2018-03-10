@@ -179,7 +179,7 @@ module.exports = function paginationPlugin (bookshelf) {
           // eg. pivotal coulmns for belongsToMany relation.
           counter.relatedData.joinColumns = noop;
         }
-        qb.countDistinct.apply(qb, [targetIdColumn]);
+        qb.count.apply(qb, [targetIdColumn]);
 
     })[fetchMethodName]({transacting}).then(result => {
 
