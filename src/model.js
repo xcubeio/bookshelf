@@ -50,11 +50,11 @@ import Promise from './base/promise';
  * @param {Object}   attributes            Initial values for this model's attributes.
  * @param {Object=}  options               Hash of options.
  * @param {string=}  options.tableName     Initial value for {@link Model#tableName tableName}.
- * @param {boolean=} [options.hasTimestamps=false]
+ * @param {Boolean=} [options.hasTimestamps=false]
  *
  *   Initial value for {@link Model#hasTimestamps hasTimestamps}.
  *
- * @param {boolean} [options.parse=false]
+ * @param {Boolean} [options.parse=false]
  *
  *   Convert attributes by {@link Model#parse parse} before being {@link
  *   Model#set set} on the model.
@@ -650,13 +650,17 @@ const BookshelfModel = ModelBase.extend({
    * @method Model#fetch
    *
    * @param {Object=}  options - Hash of options.
-   * @param {boolean=} [options.require=false]
+   * @param {Boolean=} [options.require=false]
    *   Reject the returned response with a {@link Model.NotFoundError
    *   NotFoundError} if results are empty.
    * @param {string|string[]} [options.columns='*']
    *   Specify columns to be retrieved.
    * @param {Transaction} [options.transacting]
    *  Optionally run the query in a transaction.
+   * @param {string} [options.lock]
+   *  Type of row-level lock to use. Valid options are `forShare` and
+   *  `forUpdate`. This only works in conjunction with the `transacting`
+   *  option, and requires a database that supports it.
    * @param {string|Object|mixed[]} [options.withRelated]
    *  Relations to be retrieved with `Model` instance. Either one or more
    *  relation names or objects mapping relation names to query callbacks.
@@ -779,7 +783,7 @@ const BookshelfModel = ModelBase.extend({
    * @method Model#fetchAll
    *
    * @param {Object=}  options - Hash of options.
-   * @param {boolean=} [options.require=false]
+   * @param {Boolean=} [options.require=false]
    *
    *  Rejects the returned promise with an `Collection.EmptyError` if no records are returned.
    *
@@ -859,6 +863,10 @@ const BookshelfModel = ModelBase.extend({
    * @param {Object=}      options Hash of options.
    * @param {Transaction=} options.transacting
    *   Optionally run the query in a transaction.
+   * @param {string=} options.lock
+   *  Type of row-level lock to use. Valid options are `forShare` and
+   *  `forUpdate`. This only works in conjunction with the `transacting`
+   *  option, and requires a database that supports it.
    * @returns {Promise<Model>} A promise resolving to this {@link Model model}
    */
   load: Promise.method(function(relations, options) {
@@ -873,22 +881,31 @@ const BookshelfModel = ModelBase.extend({
    * @method Model#save
    * @description
    *
-   * `save` is used to perform either an insert or update query using the
+   * This method is used to perform either an insert or update query using the
    * model's set {@link Model#attributes attributes}.
    *
    * If the model {@link Model#isNew isNew}, any {@link Model#defaults defaults}
    * will be set and an `insert` query will be performed. Otherwise it will
-   * `update` the record with a corresponding ID. This behaviour can be overriden
-   * with the `method` option.
+   * `update` the record with a corresponding ID. It is also possible to
+   * set default attributes on an `update` by passing the `{defaults: true}`
+   * option in the second argument to the `save` call. This will also use the
+   * same {@link Model#defaults defaults} as the `insert` operation.
    *
-   *     new Post({name: 'New Article'}).save().then(function(model) {
-   *       // ...
-   *     });
+   * The type of operation to perform (either `insert` or `update`) can be
+   * overriden with the `method` option:
+   *
+   *     // This forces an insert with the specified id instead of the expected
+   *     // update
+   *     new Post({name: 'New Article', id: 34})
+   *       .save(null, {method: 'insert'})
+   *       .then(function(model) {
+   *         // ...
+   *       });
    *
    * If you only wish to update with the params passed to the save, you may pass
-   * a {patch: true} flag to the database:
+   * a `{patch: true}` option in the second argument to `save`:
    *
-   *     // update authors set "bio" = 'Short user bio' where "id" = 1
+   *     // UPDATE authors SET "bio" = 'Short user bio' WHERE "id" = 1
    *     new Author({id: 1, first_name: 'User'})
    *       .save({bio: 'Short user bio'}, {patch: true})
    *       .then(function(model) {
@@ -907,13 +924,19 @@ const BookshelfModel = ModelBase.extend({
    * available in `options.query`.
    *
    *     // Save with no arguments
-   *     Model.forge({id: 5, firstName: "John", lastName: "Smith"}).save().then(function() { //...
+   *     Model.forge({id: 5, firstName: 'John', lastName: 'Smith'}).save().then(function() {
+   *       //...
+   *     });
    *
    *     // Or add attributes during save
-   *     Model.forge({id: 5}).save({firstName: "John", lastName: "Smith"}).then(function() { //...
+   *     Model.forge({id: 5}).save({firstName: 'John', lastName: 'Smith'}).then(function() {
+   *       //...
+   *     });
    *
    *     // Or, if you prefer, for a single attribute
-   *     Model.forge({id: 5}).save('name', 'John Smith').then(function() { //...
+   *     Model.forge({id: 5}).save('name', 'John Smith').then(function() {
+   *       //...
+   *     });
    *
    * @param {string=}      key                      Attribute name.
    * @param {string=}      val                      Attribute value.
@@ -923,11 +946,12 @@ const BookshelfModel = ModelBase.extend({
    *   Optionally run the query in a transaction.
    * @param {string=} options.method
    *   Explicitly select a save method, either `"update"` or `"insert"`.
-   * @param {string} [options.defaults=false]
-   *   Assign {@link Model#defaults defaults} in an `update` operation.
-   * @param {bool} [options.patch=false]
+   * @param {Boolean} [options.defaults=false]
+   *   Whether to assign or not {@link Model#defaults default} attribute values
+   *   on a model when performing an update or create operation.
+   * @param {Boolean} [options.patch=false]
    *   Only save attributes supplied in arguments to `save`.
-   * @param {bool} [options.require=true]
+   * @param {Boolean} [options.require=true]
    *   Throw a {@link Model.NoRowsUpdatedError} if no records are affected by save.
    *
    * @fires Model#saving
@@ -973,20 +997,10 @@ const BookshelfModel = ModelBase.extend({
       // timestamps, as `timestamp` calls `set` internally.
       this.set(attrs, {silent: true});
 
-      const [ createdAtKey, updatedAtKey ] = this.getTimestampKeys();
-
       // Now set timestamps if appropriate. Extend `attrs` so that the
       // timestamps will be provided for a patch operation.
       if (this.hasTimestamps) {
-        //If some of the new attributes are value for update_at or created_at columns disable the possibility for the timestamp function to update the columns
-        const editUpdatedAt = attrs[updatedAtKey] ? false : true;
-        const editCreatedAt = attrs[createdAtKey] ? false : true;
-        const additionalOptions = {
-          silent: true,
-          editUpdatedAt : editUpdatedAt ,
-          editCreatedAt : editCreatedAt
-        }
-        _.extend(attrs, this.timestamp(_.extend(options, additionalOptions)));
+        _.extend(attrs, this.timestamp(options));
       }
 
       // If there are any save constraints, set them on the model.
@@ -1150,7 +1164,7 @@ const BookshelfModel = ModelBase.extend({
    *
    * @param {Object=}      options                  Hash of options.
    * @param {Transaction=} options.transacting      Optionally run the query in a transaction.
-   * @param {bool} [options.require=true]
+   * @param {Boolean} [options.require=true]
    *   Throw a {@link Model.NoRowsDeletedError} if no records are affected by destroy. This is
    *   the default behavior as of version 0.13.0.
    *

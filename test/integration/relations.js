@@ -1,16 +1,24 @@
-var Promise   = global.testPromise;
-var equal     = require('assert').equal;
+var Promise = global.testPromise;
+var equal = require('assert').equal;
+var helpers = require('./helpers')
 
 module.exports = function(Bookshelf) {
   describe('Relations', function() {
     var output  = require('./output/Relations');
     var dialect = Bookshelf.knex.client.dialect;
     var json    = function(model) {
-      return JSON.parse(JSON.stringify(model));
+      model = model.toJSON()
+
+      if (Array.isArray(model))  {
+        return helpers.sortCollection(model)
+      }
+
+      return helpers.sort(model)
     };
-    var checkTest = function(ctx) {
+    var checkTest = function(ctx, options) {
       return function(resp) {
-        expect(json(resp)).to.eql(output[ctx.test.title][dialect].result);
+        resp = options && options.sort === false ? resp.toJSON() : json(resp)
+        expect(resp).to.eql(output[ctx.test.title][dialect].result)
       };
     };
 
@@ -225,6 +233,13 @@ module.exports = function(Bookshelf) {
           return Post.where('blog_id', 1).fetchAll({withRelated: ['tags']})
             .then(checkTest(this));
         });
+
+        it('eager loads "belongsToMany" models correctly and parent is not undefined', function() {
+          return Post.where('blog_id', 1).fetchAll({withRelated: ['tags']})
+            .then(function (result) {
+              result.models[0].related('tags').relatedData.parentId.should.eql(1);
+          });
+        });
       });
 
       describe('Nested Eager Loading - Models', function() {
@@ -241,15 +256,12 @@ module.exports = function(Bookshelf) {
                 return qb.orderBy('posts.id', 'ASC')
               }
             }
-          }).then(checkTest(this));
+          }).then(checkTest(this, {sort: false}));
         });
 
         it('does multi deep eager loads (site -> authors.ownPosts, authors.site, blogs.posts)', function() {
           return new Site({id: 1}).fetch({
-            withRelated: ['authors.ownPosts', 'authors.site',
-            {'blogs.posts': function (qb) {
-              return qb.orderBy('posts.id', 'ASC')
-            }}]
+            withRelated: ['authors.ownPosts', 'authors.site', 'blogs.posts']
           }).then(checkTest(this));
         });
       });
@@ -691,6 +703,39 @@ module.exports = function(Bookshelf) {
         it('eager loads beyond the morphTo with custom columnNames, where possible', function() {
           return Thumbnail.fetchAll({withRelated: ['imageable.authors']}).tap(checkTest(this));
         });
+
+        it('throws an error if the type attribute is not defined', function() {
+          return Bookshelf.knex('photos').insert({caption: 'a caption', imageable_id: 1}).then(function() {
+            return Photo.fetchAll({withRelated: ['imageable']})
+          }).then(function(photos) {
+            expect(photos).to.be.undefined;
+          }).catch(function(error) {
+            var expectedMessage = 'The target polymorphic model could not be determined because it\'s missing the ' +
+                                  'type attribute'
+            expect(error.message).to.equal(expectedMessage)
+          }).finally(function() {
+            return Photo.where('imageable_type', null).destroy({require: false})
+          })
+        })
+
+        it('throws an error if the type attribute is not one of the expected types', function() {
+          var badType = 'not the one'
+
+          return Bookshelf.knex('photos').insert({
+            caption: 'a caption',
+            imageable_id: 1,
+            imageable_type: badType
+          }).then(function() {
+            return Photo.fetchAll({withRelated: ['imageable']})
+          }).then(function(photos) {
+            expect(photos).to.be.undefined
+          }).catch(function(error) {
+            var expectedMessage = 'The target polymorphic type "' + badType + '" is not one of the defined target types'
+            expect(error.message).to.equal(expectedMessage)
+          }).finally(function() {
+            return Photo.where('imageable_type', badType).destroy({require: false})
+          })
+        })
       });
 
       describe('`through` relations', function() {
@@ -723,7 +768,7 @@ module.exports = function(Bookshelf) {
             { blogs: function (qb) {
               return qb.orderBy('blogs.id', 'ASC');
             }}
-          }).tap(checkTest(this));
+          }).tap(checkTest(this, {sort: false}));
         });
 
         it('eager loads belongsTo `through`', function() {

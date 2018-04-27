@@ -31,7 +31,7 @@ import createError from 'create-error';
  *
  * @param {(Model[])=} models Initial array of models.
  * @param {Object=} options
- * @param {bool} [options.comparator=false]
+ * @param {Boolean} [options.comparator=false]
  *   {@link Collection#comparator Comparator} for collection, or `false` to disable sorting.
  */
 const BookshelfCollection = CollectionBase.extend({
@@ -101,7 +101,7 @@ const BookshelfCollection = CollectionBase.extend({
    *   Upon a sucessful query resulting in no records returns. Only fired if `require: true` is passed as an option.
    *
    * @param {Object=} options
-   * @param {bool} [options.require=false] Trigger a {@link Collection.EmptyError} if no records are found.
+   * @param {Boolean} [options.require=false] Trigger a {@link Collection.EmptyError} if no records are found.
    * @param {string|string[]} [options.withRelated=[]] A relation, or list of relations, to be eager loaded as part of the `fetch` operation.
    * @returns {Promise<Collection>}
    */
@@ -209,13 +209,17 @@ const BookshelfCollection = CollectionBase.extend({
    *   });
    *
    * @param {Object=}  options
-   * @param {boolean} [options.require=false]
+   * @param {Boolean} [options.require=false]
    *   If `true`, will reject the returned response with a {@link
    *   Model.NotFoundError NotFoundError} if no result is found.
    * @param {(string|string[])} [options.columns='*']
    *   Limit the number of columns fetched.
-   * @param {Transaction} options.transacting
+   * @param {Transaction} [options.transacting]
    *  Optionally run the query in a transaction.
+   * @param {string} [options.lock]
+   *  Type of row-level lock to use. Valid options are `forShare` and
+   *  `forUpdate`. This only works in conjunction with the `transacting`
+   *  option, and requires a database that supports it.
    *
    * @throws {Model.NotFoundError}
    * @returns {Promise<Model|null>}
@@ -240,6 +244,10 @@ const BookshelfCollection = CollectionBase.extend({
    *  @param {string|string[]} relations The relation, or relations, to be loaded.
    *  @param {Object=}      options Hash of options.
    *  @param {Transaction=} options.transacting
+   *  @param {string=} options.lock
+   *  Type of row-level lock to use. Valid options are `forShare` and
+   *  `forUpdate`. This only works in conjunction with the `transacting`
+   *  option, and requires a database that supports it.
    *
    *  @returns {Promise<Collection>} A promise resolving to this {@link
    *  Collection collection}

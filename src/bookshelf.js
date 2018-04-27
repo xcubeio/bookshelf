@@ -11,7 +11,6 @@ import BookshelfModel from './model';
 import BookshelfCollection from './collection';
 import BookshelfRelation from './relation';
 import Errors from './errors';
-import Knex from 'knex';
 
 /**
  * @class Bookshelf
@@ -25,7 +24,7 @@ import Knex from 'knex';
  * @param {Knex} knex Knex instance.
  */
 function Bookshelf(knex) {
-  if (!knex || !(knex.client instanceof Knex.Client)) {
+  if (!knex || knex.name !== 'knex') {
     throw new Error('Invalid knex instance');
   }
   const bookshelf = {
@@ -33,7 +32,6 @@ function Bookshelf(knex) {
   };
 
   const Model = bookshelf.Model = BookshelfModel.extend({
-
     _builder: builderFn,
 
     // The `Model` constructor is referenced as a property on the `Bookshelf`
@@ -47,7 +45,6 @@ function Bookshelf(knex) {
       }
       return new Relation(type, Target, options);
     }
-
   }, {
 
     /**
@@ -60,11 +57,11 @@ function Bookshelf(knex) {
      * @param {Object=} attributes Initial values for this model's attributes.
      * @param {Object=}  options               Hash of options.
      * @param {string=}  options.tableName     Initial value for {@linkcode Model#tableName tableName}.
-     * @param {boolean=} [options.hasTimestamps=false]
+     * @param {Boolean=} [options.hasTimestamps=false]
      *
      *   Initial value for {@linkcode Model#hasTimestamps hasTimestamps}.
      *
-     * @param {boolean} [options.parse=false]
+     * @param {Boolean} [options.parse=false]
      *
      *   Convert attributes by {@linkcode Model#parse parse} before being
      *   {@linkcode Model#set set} on the `model`.
@@ -195,6 +192,11 @@ function Bookshelf(knex) {
      * same connection. The entire transaction block is a promise that will
      * resolve when the transaction is committed, or fail if the transaction is
      * rolled back.
+     *
+     * When fetching inside a transaction it's possible to specify a row-level
+     * lock by passing the wanted lock type in the `lock` option to
+     * {@linkcode Model#fetch fetch}. Available options are `forUpdate` and
+     * `forShare`.
      *
      *     var Promise = require('bluebird');
      *

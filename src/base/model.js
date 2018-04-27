@@ -2,7 +2,6 @@
 // ---------------
 import _, { assign, identity, mapKeys, mapValues, clone } from 'lodash';
 import inherits from 'inherits';
-
 import Events from './events';
 import {PIVOT_PREFIX, DEFAULT_TIMESTAMP_KEYS} from '../constants';
 
@@ -129,21 +128,71 @@ ModelBase.prototype.initialize = function() {};
 ModelBase.prototype.idAttribute = 'id';
 
 /**
- * @member {boolean|Array}
+ * @member {Object|Null}
+ * @default null
+ * @description
+ *
+ * This can be used to define any default values for attributes that are not
+ * present when creating or updating a model in a {@link Model#save save} call.
+ * The default behavior is to *not* use these default values on updates unless
+ * the `defaults: true` option is passed to the {@link Model#save save} call.
+ * For inserts the default values will always be used if present.
+ *
+ * @example
+ *
+ * var MyModel = bookshelf.Model.extend({
+ *   defaults: {property1: 'foo', property2: 'bar'},
+ *   tableName: 'my_table'
+ * })
+ *
+ * MyModel.forge({property1: 'blah'}).save().then(function(model) {
+ *   // {property1: 'blah', property2: 'bar'}
+ * })
+ */
+ModelBase.prototype.defaults = null;
+
+/**
+ * @member {Boolean|Array}
  * @default false
  * @description
  *
- * Sets the current date/time on the timestamps columns `created_at` and
- * `updated_at` for a given method. The 'update' method will only update
- * `updated_at`.  To override the default column names, assign an array
- * to {@link Model#hasTimestamps hasTimestamps}.  The first element will
- * be the created column name and the second will be the updated
- * column name.
- * You can pass values for the timestamps columns as parameter in the
- * {@link Model#save save} method. This will prevent the automatic
- * update of the timestamps columns values during the {@link Model#save save} method,
- * while the final columns values will be the values you have specified.
+ * Automatically sets the current date and time on the timestamp attributes
+ * `created_at` and `updated_at` based on the type of save method. The *update*
+ * method will only update `updated_at`, while the *insert* method will set
+ * both values.
  *
+ * To override the default attribute names, assign an array to this property.
+ * The first element will be the *created* column name and the second will be
+ * the *updated* one. If any of these elements is set to `null` that particular
+ * timestamp attribute will not be used in the model. For example, to
+ * automatically update only the `created_at` attribute set this property to
+ * `['created_at', null]`.
+ *
+ * You can override the timestamp attribute values of a model and those values
+ * will be used instead of the automatic ones when saving.
+ *
+ * @example
+ *
+ * var MyModel = bookshelf.Model.extend({
+ *   hasTimestamps: true,
+ *   tableName: 'my_table'
+ * })
+ *
+ * var myModel = MyModel.forge({name: 'blah'}).save().then(function(savedModel) {
+ *   // {
+ *   //   name: 'blah',
+ *   //   created_at: 'Sun Mar 25 2018 15:07:11 GMT+0100 (WEST)',
+ *   //   updated_at: 'Sun Mar 25 2018 15:07:11 GMT+0100 (WEST)'
+ *   // }
+ * })
+ *
+ * myModel.save({created_at: new Date(2015, 5, 2)}).then(function(updatedModel) {
+ *   // {
+ *   //   name: 'blah',
+ *   //   created_at: 'Tue Jun 02 2015 00:00:00 GMT+0100 (WEST)',
+ *   //   updated_at: 'Sun Mar 25 2018 15:07:11 GMT+0100 (WEST)'
+ *   // }
+ * })
  */
 ModelBase.prototype.hasTimestamps = false;
 
@@ -166,7 +215,7 @@ ModelBase.prototype.formatTimestamps = function formatTimestamps() {
   if (!this.hasTimestamps) return this;
 
   this.getTimestampKeys().forEach((key) => {
-    this.set(key, new Date(this.get(key)));
+    if (this.get(key)) this.set(key, new Date(this.get(key)));
   });
 
   return this;
@@ -312,8 +361,8 @@ ModelBase.prototype.isNew = function() {
  * // {firstName: "Wassily", lastName: "Kandinsky", birthday: "December 16, 1866"}
  *
  * @param {Object=} options
- * @param {bool}    [options.shallow=false]   Exclude relations.
- * @param {bool}    [options.omitPivot=false] Exclude pivot values.
+ * @param {Boolean}    [options.shallow=false]   Exclude relations.
+ * @param {Boolean}    [options.omitPivot=false] Exclude pivot values.
  * @returns {Object} Serialized model as a plain object.
  */
 ModelBase.prototype.serialize = function(options = {}) {
@@ -385,7 +434,7 @@ ModelBase.prototype.escape = function(key) {
  * @description
  * Returns `true` if the attribute contains a value that is not null or undefined.
  * @param {string} attribute The attribute to check.
- * @returns {bool} True if `attribute` is set, otherwise `false`.
+ * @returns {Boolean} True if `attribute` is set, otherwise `false`.
  */
 ModelBase.prototype.has = function(attr) {
   return this.get(attr) != null;
@@ -568,22 +617,24 @@ ModelBase.prototype.getTimestampKeys = function() {
 /**
  * @method
  * @description
- * Sets the timestamp attributes on the model, if {@link Model#hasTimestamps
- * hasTimestamps} is set to `true` or an array. Check if the model {@link
- * Model#isNew isNew} or if `{method: 'insert'}` is provided as an option and
- * set the `created_at` and `updated_at` attributes to the current date if it
- * is being inserted, and just the `updated_at` attribute if it's being updated.
- * This method may be overriden to use different column names or types for the
- * timestamps.
+ * Automatically sets the timestamp attributes on the model, if
+ * {@link Model#hasTimestamps hasTimestamps} is set to `true` or an array. It
+ * checks if the model is new and sets the `created_at` and `updated_at`
+ * attributes (or any other custom attribute names you have set) to the current
+ * date. If the model is not new and is just being updated then only the
+ * `updated_at` attribute gets automatically updated.
+ *
+ * If the model contains any user defined `created_at` or `updated_at` values,
+ * there won't be any automatic updated of these attributes and the user
+ * supplied values will be used instead.
  *
  * @param {Object=} options
  * @param {string} [options.method]
- *   Either `'insert'` or `'update'`. Specify what kind of save the attribute
+ *   Either `'insert'` or `'update'` to specify what kind of save the attribute
  *   update is for.
  * @param {string} [options.date]
  *   Either a Date object or ms since the epoch. Specify what date is used for
- *   the timestamps updated.
- *
+ *   updateing the timestamps, i.e. if something other than `new Date()` should be used.
  * @returns {Object} A hash of timestamp attributes that were set.
  */
 ModelBase.prototype.timestamp = function(options) {
@@ -592,19 +643,19 @@ ModelBase.prototype.timestamp = function(options) {
   const now          = (options || {}).date ? new Date(options.date) : new Date();
   const attributes   = {};
   const method       = this.saveMethod(options);
-  const canEditUpdatedAtKey = (options || {}).editUpdatedAt!= undefined ? options.editUpdatedAt : true;
-  const canEditCreatedAtKey = (options || {}).editCreatedAt!= undefined ? options.editCreatedAt : true;
-  const [ createdAtKey, updatedAtKey ] = this.getTimestampKeys();
+  const [createdAtKey, updatedAtKey] = this.getTimestampKeys();
+  const isNewModel = method === 'insert';
+  const setUpdatedAt = updatedAtKey && this.hasChanged(updatedAtKey)
 
-  if (updatedAtKey && canEditUpdatedAtKey) {
+  if (updatedAtKey && (isNewModel && !setUpdatedAt || this.hasChanged() && !setUpdatedAt)) {
     attributes[updatedAtKey] = now;
   }
 
-  if (createdAtKey && method === 'insert' && canEditCreatedAtKey) {
+  if (createdAtKey && isNewModel && !this.hasChanged(createdAtKey)) {
     attributes[createdAtKey] = now;
   }
 
-  this.set(attributes, options);
+  this.set(attributes, _.extend(options, {silent: true}));
 
   return attributes;
 };
@@ -619,7 +670,7 @@ ModelBase.prototype.timestamp = function(options) {
  * specific attribute has changed.
  *
  * @param {string=} attribute
- * @returns {bool}
+ * @returns {Boolean}
  * `true` if any attribute has changed. Or, if `attribute` was specified, true
  * if it has changed.
  */
