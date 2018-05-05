@@ -1,3 +1,11 @@
+'use strict';
+
+var _typeof2 = require('babel-runtime/helpers/typeof');
+
+var _typeof3 = _interopRequireDefault(_typeof2);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 var _ = require('lodash');
 
 /**
@@ -11,15 +19,15 @@ module.exports = function processorPlugin(bookshelf) {
   var proto = bookshelf.Model.prototype;
 
   bookshelf.Model = bookshelf.Model.extend({
-    set: function(key, value, options) {
+    set: function set(key, value, options) {
       var processedKey;
       var self = this;
 
       if (!key) return this;
 
       if (this.processors) {
-        if (typeof key === 'object') {
-          processedKey = _.transform(key, function(result, value, key) {
+        if ((typeof key === 'undefined' ? 'undefined' : (0, _typeof3.default)(key)) === 'object') {
+          processedKey = _.transform(key, function (result, value, key) {
             result[key] = self.processAttribute(key, value);
           });
 
@@ -64,7 +72,7 @@ module.exports = function processorPlugin(bookshelf) {
       if (!processes) return value;
       if (!Array.isArray(processes)) processes = [processes];
 
-      processes.forEach(function(process) {
+      processes.forEach(function (process) {
         value = process(value);
       });
 

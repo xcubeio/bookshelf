@@ -1,31 +1,54 @@
+'use strict';
+
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
+var _inherits = require('inherits');
+
+var _inherits2 = _interopRequireDefault(_inherits);
+
+var _events = require('./events');
+
+var _events2 = _interopRequireDefault(_events);
+
+var _promise = require('./promise');
+
+var _promise2 = _interopRequireDefault(_promise);
+
+var _model = require('./model');
+
+var _model2 = _interopRequireDefault(_model);
+
+var _extend = require('../extend');
+
+var _extend2 = _interopRequireDefault(_extend);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// All components that need to be referenced in this scope.
 // Base Collection
 // ---------------
 
 // All exernal dependencies required in this scope.
-import _, { invokeMap, noop, negate, isNull } from 'lodash';
-import inherits from 'inherits';
-
-// All components that need to be referenced in this scope.
-import Events from './events';
-import Promise from './promise';
-import ModelBase from './model';
-import extend from '../extend';
-
-const { splice, slice } = Array.prototype;
+var _Array$prototype = Array.prototype,
+    splice = _Array$prototype.splice,
+    slice = _Array$prototype.slice;
 
 /**
  * @class CollectionBase
  * @extends Events
  * @inheritdoc
  */
+
 function CollectionBase(models, options) {
-  if (options) _.extend(this, _.pick(options, collectionProps));
+  if (options) _lodash2.default.extend(this, _lodash2.default.pick(options, collectionProps));
   this._reset();
-  this.initialize.apply(this, arguments)
-  if (!_.isFunction(this.model)) {
+  this.initialize.apply(this, arguments);
+  if (!_lodash2.default.isFunction(this.model)) {
     throw new Error('A valid `model` constructor must be defined for all collections.');
   }
-  if (models) this.reset(models, _.extend({silent: true}, options));
+  if (models) this.reset(models, _lodash2.default.extend({ silent: true }, options));
 }
 
 /**
@@ -57,7 +80,7 @@ function CollectionBase(models, options) {
  *
  * @see Events#trigger
  */
-inherits(CollectionBase, Events);
+(0, _inherits2.default)(CollectionBase, _events2.default);
 
 // List of attributes attached directly from the constructor's options object.
 //
@@ -73,15 +96,13 @@ inherits(CollectionBase, Events);
 // its `type` is 'belongsToMany'. So it is safe to put them in the list and use them
 // without any additional verification.
 // These should not be documented as a valid arguments for consumer code.
-const collectionProps = [
-  'model', 'comparator', 'relatedData',
-  // `belongsToMany` pivotal collection properties
-  'attach', 'detach', 'updatePivot', 'withPivot', '_processPivot', '_processPlainPivot', '_processModelPivot'
-];
+var collectionProps = ['model', 'comparator', 'relatedData',
+// `belongsToMany` pivotal collection properties
+'attach', 'detach', 'updatePivot', 'withPivot', '_processPivot', '_processPlainPivot', '_processModelPivot'];
 
 // Copied over from Backbone.
-const setOptions = {add: true, remove: true, merge: true};
-const addOptions = {add: true, remove: false};
+var setOptions = { add: true, remove: true, merge: true };
+var addOptions = { add: true, remove: false };
 
 /**
  * @method CollectionBase#initialize
@@ -98,7 +119,7 @@ const addOptions = {add: true, remove: false};
  *
  * @see Collection
  */
-CollectionBase.prototype.initialize = noop;
+CollectionBase.prototype.initialize = _lodash.noop;
 
 /**
  * @method
@@ -107,8 +128,8 @@ CollectionBase.prototype.initialize = noop;
  * The `tableName` on the associated Model, used in relation building.
  * @returns {string} The {@link Model#tableName tableName} of the associated model.
  */
-CollectionBase.prototype.tableName = function() {
-  return _.result(this.model.prototype, 'tableName');
+CollectionBase.prototype.tableName = function () {
+  return _lodash2.default.result(this.model.prototype, 'tableName');
 };
 
 /**
@@ -118,11 +139,11 @@ CollectionBase.prototype.tableName = function() {
  * The `idAttribute` on the associated Model, used in relation building.
  * @returns {string} The {@link Model#idAttribute idAttribute} of the associated model.
  */
-CollectionBase.prototype.idAttribute = function() {
+CollectionBase.prototype.idAttribute = function () {
   return this.model.prototype.idAttribute;
 };
 
-CollectionBase.prototype.toString = function() {
+CollectionBase.prototype.toString = function () {
   return '[Object Collection]';
 };
 
@@ -145,9 +166,9 @@ CollectionBase.prototype.toString = function() {
  * @param {Boolean}    [options.omitNew=false]   Exclude models that return true for isNew.
  * @returns {Object} Serialized model as a plain object.
  */
-CollectionBase.prototype.serialize = function(options) {
-  return invokeMap(this.models, 'toJSON', options).filter(negate(isNull));
-}
+CollectionBase.prototype.serialize = function (options) {
+  return (0, _lodash.invokeMap)(this.models, 'toJSON', options).filter((0, _lodash.negate)(_lodash.isNull));
+};
 
 /**
  * @method
@@ -160,8 +181,8 @@ CollectionBase.prototype.serialize = function(options) {
  *
  * @param {options} Options passed to {@link Collection#serialize}.
  */
-CollectionBase.prototype.toJSON = function(options) {
-  return this.serialize(options)
+CollectionBase.prototype.toJSON = function (options) {
+  return this.serialize(options);
 };
 
 /**
@@ -186,24 +207,32 @@ CollectionBase.prototype.toJSON = function(options) {
  * @param {Object=} options See description.
  * @returns {Collection} Self, this method is chainable.
  */
-CollectionBase.prototype.set = function(models, options) {
-  options = _.defaults({}, options, setOptions);
-  if (!_.isArray(models)) models = models ? [models] : [];
+CollectionBase.prototype.set = function (models, options) {
+  options = _lodash2.default.defaults({}, options, setOptions);
+  if (!_lodash2.default.isArray(models)) models = models ? [models] : [];
   if (options.parse) models = this.parse(models, options);
-  let i, l, id, model, attrs;
-  const at = options.at;
-  const targetModel = this.model;
-  const toAdd = []
-  const toRemove = [];
-  const modelMap = {};
-  const { add, merge, remove } = options;
-  let order = add && remove ? [] : false;
+  var i = void 0,
+      l = void 0,
+      id = void 0,
+      model = void 0,
+      attrs = void 0;
+  var at = options.at;
+  var targetModel = this.model;
+  var toAdd = [];
+  var toRemove = [];
+  var modelMap = {};
+  var _options = options,
+      add = _options.add,
+      merge = _options.merge,
+      remove = _options.remove;
+
+  var order = add && remove ? [] : false;
 
   // Turn bare objects into model references, and prevent invalid models
   // from being added.
   for (i = 0, l = models.length; i < l; i++) {
     attrs = models[i];
-    if (attrs instanceof ModelBase) {
+    if (attrs instanceof _model2.default) {
       id = model = attrs;
     } else {
       id = attrs[targetModel.prototype.idAttribute];
@@ -211,7 +240,7 @@ CollectionBase.prototype.set = function(models, options) {
 
     // If a duplicate is found, prevent it from being added and
     // optionally merge it into the existing model.
-    const existing = this.get(id)
+    var existing = this.get(id);
     if (existing) {
       if (remove) {
         modelMap[existing.cid] = true;
@@ -241,7 +270,7 @@ CollectionBase.prototype.set = function(models, options) {
   }
 
   // See if sorting is needed, update `length` and splice in new models.
-  if (toAdd.length || (order && order.length)) {
+  if (toAdd.length || order && order.length) {
     this.length += toAdd.length;
     if (at != null) {
       splice.apply(this.models, [at, 0].concat(toAdd));
@@ -272,8 +301,8 @@ CollectionBase.prototype.set = function(models, options) {
  * @description
  * Prepare a model or hash of attributes to be added to this collection.
  */
-CollectionBase.prototype._prepareModel = function(attrs, options) {
-  if (attrs instanceof ModelBase) return attrs;
+CollectionBase.prototype._prepareModel = function (attrs, options) {
+  if (attrs instanceof _model2.default) return attrs;
   return new this.model(attrs, options);
 };
 
@@ -283,8 +312,8 @@ CollectionBase.prototype._prepareModel = function(attrs, options) {
  * @description
  * Run "Promise.map" over the models
  */
-CollectionBase.prototype.mapThen = function(iterator, context) {
-  return Promise.bind(context).thenReturn(this.models).map(iterator);
+CollectionBase.prototype.mapThen = function (iterator, context) {
+  return _promise2.default.bind(context).thenReturn(this.models).map(iterator);
 };
 
 /**
@@ -308,8 +337,8 @@ CollectionBase.prototype.mapThen = function(iterator, context) {
  * @returns {Promise<mixed[]>}
  *   Promise resolving to array of results from invocation.
  */
-CollectionBase.prototype.invokeThen = function() {
-  return Promise.all(this.invokeMap.apply(this, arguments));
+CollectionBase.prototype.invokeThen = function () {
+  return _promise2.default.all(this.invokeMap.apply(this, arguments));
 };
 
 /**
@@ -324,12 +353,12 @@ CollectionBase.prototype.invokeThen = function() {
  *   Promise resolving to array of results from invocation.
  *
  */
-CollectionBase.prototype.reduceThen = function(iterator, initialValue, context) {
-  return Promise.bind(context).thenReturn(this.models).reduce(iterator, initialValue).bind();
+CollectionBase.prototype.reduceThen = function (iterator, initialValue, context) {
+  return _promise2.default.bind(context).thenReturn(this.models).reduce(iterator, initialValue).bind();
 };
 
-CollectionBase.prototype.fetch = function() {
-  return Promise.rejected('The fetch method has not been implemented');
+CollectionBase.prototype.fetch = function () {
+  return _promise2.default.rejected('The fetch method has not been implemented');
 };
 
 /**
@@ -361,8 +390,8 @@ CollectionBase.prototype.fetch = function() {
  * @param {Object=} options See description.
  * @returns {Collection} Self, this method is chainable.
  */
-CollectionBase.prototype.add = function(models, options) {
-  return this.set(models, _.extend({merge: false}, options, addOptions));
+CollectionBase.prototype.add = function (models, options) {
+  return this.set(models, _lodash2.default.extend({ merge: false }, options, addOptions));
 };
 
 /**
@@ -377,18 +406,18 @@ CollectionBase.prototype.add = function(models, options) {
  * @param {Object} options
  * @returns {Model|Model[]} The same value passed as `models` argument.
  */
-CollectionBase.prototype.remove = function(models, options) {
-  const singular = !_.isArray(models);
-  models = singular ? [models] : _.clone(models);
+CollectionBase.prototype.remove = function (models, options) {
+  var singular = !_lodash2.default.isArray(models);
+  models = singular ? [models] : _lodash2.default.clone(models);
   options = options || {};
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i] = this.get(models[i]);
+  for (var i = 0; i < models.length; i++) {
+    var model = models[i] = this.get(models[i]);
     if (!model) continue;
     delete this._byId[model.id];
     delete this._byId[model.cid];
-    const index = this.indexOf(model);
+    var index = this.indexOf(model);
     this.models.splice(index, 1);
-    this.length = this.length - 1
+    this.length = this.length - 1;
     if (!options.silent) {
       options.index = index;
       model.trigger('remove', model, this, options);
@@ -412,11 +441,11 @@ CollectionBase.prototype.remove = function(models, options) {
  * @param {Object} options See {@link Collection#add add}.
  * @returns {Model[]} Array of models.
  */
-CollectionBase.prototype.reset = function(models, options) {
+CollectionBase.prototype.reset = function (models, options) {
   options = options || {};
   options.previousModels = this.models;
   this._reset();
-  models = this.add(models, _.extend({silent: true}, options));
+  models = this.add(models, _lodash2.default.extend({ silent: true }, options));
   if (!options.silent) this.trigger('reset', this, options);
   return models;
 };
@@ -429,8 +458,8 @@ CollectionBase.prototype.reset = function(models, options) {
  * attribute objects.
  * @returns {Collection} Self, this method is chainable.
  */
-CollectionBase.prototype.push = function(model, options) {
-  return this.add(model, _.extend({at: this.length}, options));
+CollectionBase.prototype.push = function (model, options) {
+  return this.add(model, _lodash2.default.extend({ at: this.length }, options));
 };
 
 /**
@@ -438,8 +467,8 @@ CollectionBase.prototype.push = function(model, options) {
  * @description
  * Remove a model from the end of the collection.
  */
-CollectionBase.prototype.pop = function(options) {
-  const model = this.at(this.length - 1);
+CollectionBase.prototype.pop = function (options) {
+  var model = this.at(this.length - 1);
   this.remove(model, options);
   return model;
 };
@@ -449,8 +478,8 @@ CollectionBase.prototype.pop = function(options) {
  * @description
  * Add a model to the beginning of the collection.
  */
-CollectionBase.prototype.unshift = function(model, options) {
-  return this.add(model, _.extend({at: 0}, options));
+CollectionBase.prototype.unshift = function (model, options) {
+  return this.add(model, _lodash2.default.extend({ at: 0 }, options));
 };
 
 /**
@@ -458,8 +487,8 @@ CollectionBase.prototype.unshift = function(model, options) {
  * @description
  * Remove a model from the beginning of the collection.
  */
-CollectionBase.prototype.shift = function(options) {
-  const model = this.at(0);
+CollectionBase.prototype.shift = function (options) {
+  var model = this.at(0);
   this.remove(model, options);
   return model;
 };
@@ -469,7 +498,7 @@ CollectionBase.prototype.shift = function(options) {
  * @description
  * Slice out a sub-array of models from the collection.
  */
-CollectionBase.prototype.slice = function() {
+CollectionBase.prototype.slice = function () {
   return slice.apply(this.models, arguments);
 };
 
@@ -486,7 +515,7 @@ CollectionBase.prototype.slice = function() {
  *
  * @returns {Model} The model, or `undefined` if it is not in the collection.
  */
-CollectionBase.prototype.get = function(obj) {
+CollectionBase.prototype.get = function (obj) {
   if (obj == null) return void 0;
   return this._byId[obj.id] || this._byId[obj.cid] || this._byId[obj];
 };
@@ -498,7 +527,7 @@ CollectionBase.prototype.get = function(obj) {
  * is sorted, and if your collection isn't sorted, `at` will still retrieve
  * models in insertion order.
  */
-CollectionBase.prototype.at = function(index) {
+CollectionBase.prototype.at = function (index) {
   return this.models[index];
 };
 
@@ -508,10 +537,10 @@ CollectionBase.prototype.at = function(index) {
  * Return models with matching attributes. Useful for simple cases of `filter`.
  * @returns {Model[]} Array of matching models.
  */
-CollectionBase.prototype.where = function(attrs, first) {
-  if (_.isEmpty(attrs)) return first ? void 0 : [];
-  return this[first ? 'find' : 'filter'](function(model) {
-    for (const key in attrs) {
+CollectionBase.prototype.where = function (attrs, first) {
+  if (_lodash2.default.isEmpty(attrs)) return first ? void 0 : [];
+  return this[first ? 'find' : 'filter'](function (model) {
+    for (var key in attrs) {
       if (attrs[key] !== model.get(key)) return false;
     }
     return true;
@@ -525,7 +554,7 @@ CollectionBase.prototype.where = function(attrs, first) {
  * `find`.
  * @returns {Model} The first matching model.
  */
-CollectionBase.prototype.findWhere = function(attrs) {
+CollectionBase.prototype.findWhere = function (attrs) {
   return this.where(attrs, true);
 };
 
@@ -535,15 +564,15 @@ CollectionBase.prototype.findWhere = function(attrs) {
  * @description
  * Force the collection to re-sort itself, based on a comporator defined on the model.
  */
-CollectionBase.prototype.sort = function(options) {
+CollectionBase.prototype.sort = function (options) {
   if (!this.comparator) throw new Error('Cannot sort a set without a comparator');
-  options = options || {}
+  options = options || {};
 
   // Run sort based on type of `comparator`.
-  if (_.isString(this.comparator) || this.comparator.length === 1) {
+  if (_lodash2.default.isString(this.comparator) || this.comparator.length === 1) {
     this.models = this.sortBy(this.comparator, this);
   } else {
-    this.models.sort(_.bind(this.comparator, this));
+    this.models.sort(_lodash2.default.bind(this.comparator, this));
   }
 
   if (!options.silent) this.trigger('sort', this, options);
@@ -556,7 +585,7 @@ CollectionBase.prototype.sort = function(options) {
  * Pluck an attribute from each model in the collection.
  * @returns {mixed[]} An array of attribute values.
  */
-CollectionBase.prototype.pluck = function(attr) {
+CollectionBase.prototype.pluck = function (attr) {
   return this.invokeMap('get', attr);
 };
 
@@ -571,7 +600,7 @@ CollectionBase.prototype.pluck = function(attr) {
  *
  * @param {Object[]} resp Raw database response array.
  */
-CollectionBase.prototype.parse = function(resp) {
+CollectionBase.prototype.parse = function (resp) {
   return resp;
 };
 
@@ -580,11 +609,11 @@ CollectionBase.prototype.parse = function(resp) {
  * @description
  * Create a new collection with an identical list of models as this one.
  */
-CollectionBase.prototype.clone = function() {
+CollectionBase.prototype.clone = function () {
   // Iterate over the selected list of collection properties and invoke `clone` for
   // each property that has a method for that porpose.
-  const clonedProps = _(this).pick(collectionProps).mapValues((val) => {
-    return (val && typeof(val.clone) === 'function') ? val.clone() : val;
+  var clonedProps = (0, _lodash2.default)(this).pick(collectionProps).mapValues(function (val) {
+    return val && typeof val.clone === 'function' ? val.clone() : val;
   }).value();
   return new this.constructor(this.models, clonedProps);
 };
@@ -595,10 +624,10 @@ CollectionBase.prototype.clone = function() {
  * @description
  * Reset all internal state. Called when the collection is first initialized or reset.
  */
-CollectionBase.prototype._reset = function() {
+CollectionBase.prototype._reset = function () {
   this.length = 0;
   this.models = [];
-  this._byId  = Object.create(null);
+  this._byId = Object.create(null);
 };
 
 /**
@@ -732,16 +761,12 @@ CollectionBase.prototype._reset = function() {
 // Lodash methods that we want to implement on the Collection.
 // 90% of the core usefulness of Backbone Collections is actually implemented
 // right here:
-const methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight',
-  'find', 'filter', 'every', 'some', 'includes', 'invokeMap',
-  'max', 'min', 'maxBy', 'minBy', 'toArray', 'size', 'first', 'head', 'take', 'initial',
-  'tail', 'drop', 'last', 'without', 'difference', 'indexOf', 'shuffle',
-  'lastIndexOf', 'isEmpty', 'chain'];
+var methods = ['forEach', 'each', 'map', 'reduce', 'reduceRight', 'find', 'filter', 'every', 'some', 'includes', 'invokeMap', 'max', 'min', 'maxBy', 'minBy', 'toArray', 'size', 'first', 'head', 'take', 'initial', 'tail', 'drop', 'last', 'without', 'difference', 'indexOf', 'shuffle', 'lastIndexOf', 'isEmpty', 'chain'];
 
 // Mix in each Lodash method as a proxy to `Collection#models`.
-_.each(methods, function(method) {
-  CollectionBase.prototype[method] = function() {
-    return _[method](this.models, ...arguments);
+_lodash2.default.each(methods, function (method) {
+  CollectionBase.prototype[method] = function () {
+    return _lodash2.default[method].apply(_lodash2.default, [this.models].concat(Array.prototype.slice.call(arguments)));
   };
 });
 
@@ -760,15 +785,15 @@ _.each(methods, function(method) {
  * @see http://lodash.com/docs/#sortBy
  */
 // Lodash methods that take a property name as an argument.
-const attributeMethods = ['groupBy', 'countBy', 'sortBy'];
+var attributeMethods = ['groupBy', 'countBy', 'sortBy'];
 
 // Use attributes instead of properties.
-_.each(attributeMethods, function(method) {
-  CollectionBase.prototype[method] = function(value, context) {
-    const iterator = _.isFunction(value) ? value : function(model) {
+_lodash2.default.each(attributeMethods, function (method) {
+  CollectionBase.prototype[method] = function (value, context) {
+    var iterator = _lodash2.default.isFunction(value) ? value : function (model) {
       return model.get(value);
     };
-    return _[method](this.models, _.bind(iterator, context));
+    return _lodash2.default[method](this.models, _lodash2.default.bind(iterator, context));
   };
 });
 
@@ -787,7 +812,7 @@ _.each(attributeMethods, function(method) {
  *   constructor of the new class.
  * @returns {Function} Constructor for new `Collection` subclass.
  */
-CollectionBase.extend = extend;
+CollectionBase.extend = _extend2.default;
 
 /*
  * NOTE: For some reason `export` is failing in the version of Babel I'm

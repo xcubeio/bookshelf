@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * Case Converter Plugin
  *
@@ -11,7 +13,7 @@
  * @module plugins/case-converter
  */
 module.exports = function caseConverter(bookshelf) {
-  const _ = require('lodash');
+  var _ = require('lodash');
 
   /**
    * Monkey-patched Model class.
@@ -24,8 +26,8 @@ module.exports = function caseConverter(bookshelf) {
      * @description Converts attribute keys to camel case when fetching data from the database.
      * @override
      */
-    parse: function(attrs) {
-      return _.mapKeys(attrs, function(value, key) {
+    parse: function parse(attrs) {
+      return _.mapKeys(attrs, function (value, key) {
         return _.camelCase(key);
       });
     },
@@ -37,8 +39,8 @@ module.exports = function caseConverter(bookshelf) {
      *    will not be set on the model.
      * @override
      */
-    format: function(attrs) {
-      return _.mapKeys(attrs, function(value, key) {
+    format: function format(attrs) {
+      return _.mapKeys(attrs, function (value, key) {
         return _.snakeCase(key);
       });
     }

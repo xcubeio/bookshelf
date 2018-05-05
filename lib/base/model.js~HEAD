@@ -1,12 +1,41 @@
-// Base Model
-// ---------------
-import _, { assign, identity, mapKeys, mapValues, clone } from 'lodash';
-import inherits from 'inherits';
-import Events from './events';
-import {PIVOT_PREFIX, DEFAULT_TIMESTAMP_KEYS} from '../constants';
+'use strict';
+
+var _slicedToArray2 = require('babel-runtime/helpers/slicedToArray');
+
+var _slicedToArray3 = _interopRequireDefault(_slicedToArray2);
+
+var _extends2 = require('babel-runtime/helpers/extends');
+
+var _extends3 = _interopRequireDefault(_extends2);
+
+var _typeof2 = require('babel-runtime/helpers/typeof');
+
+var _typeof3 = _interopRequireDefault(_typeof2);
+
+var _defineProperty2 = require('babel-runtime/helpers/defineProperty');
+
+var _defineProperty3 = _interopRequireDefault(_defineProperty2);
+
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
+var _inherits = require('inherits');
+
+var _inherits2 = _interopRequireDefault(_inherits);
+
+var _events = require('./events');
+
+var _events2 = _interopRequireDefault(_events);
+
+var _constants = require('../constants');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // List of attributes attached directly from the `options` passed to the constructor.
-const modelProps = ['tableName', 'hasTimestamps'];
+// Base Model
+// ---------------
+var modelProps = ['tableName', 'hasTimestamps'];
 
 /**
  * @class
@@ -19,14 +48,14 @@ const modelProps = ['tableName', 'hasTimestamps'];
  * standard interface from which other objects may inherit.
  */
 function ModelBase(attributes, options) {
-  let attrs = attributes || {};
-  options   = options    || {};
+  var attrs = attributes || {};
+  options = options || {};
   this.attributes = Object.create(null);
   this._reset();
   this.relations = {};
-  this.cid  = _.uniqueId('c');
+  this.cid = _lodash2.default.uniqueId('c');
   if (options) {
-    _.extend(this, _.pick(options, modelProps));
+    _lodash2.default.extend(this, _lodash2.default.pick(options, modelProps));
     if (options.parse) attrs = this.parse(attrs, options) || {};
   }
   this.set(attrs, options);
@@ -62,7 +91,7 @@ function ModelBase(attributes, options) {
  *
  * @see Events#trigger
  */
-inherits(ModelBase, Events);
+(0, _inherits2.default)(ModelBase, _events2.default);
 
 /**
  * @method ModelBase#initialize
@@ -85,7 +114,7 @@ inherits(ModelBase, Events);
  * @param {Object=}  options
  *   The hash of options passed to {@link Model constructor}.
  */
-ModelBase.prototype.initialize = function() {};
+ModelBase.prototype.initialize = function () {};
 
 /**
  * @name ModelBase#tableName
@@ -212,10 +241,12 @@ ModelBase.prototype.hasTimestamps = false;
  * @returns {Model} The model that called this.
  */
 ModelBase.prototype.formatTimestamps = function formatTimestamps() {
+  var _this = this;
+
   if (!this.hasTimestamps) return this;
 
-  this.getTimestampKeys().forEach((key) => {
-    if (this.get(key)) this.set(key, new Date(this.get(key)));
+  this.getTimestampKeys().forEach(function (key) {
+    if (_this.get(key)) _this.set(key, new Date(_this.get(key)));
   });
 
   return this;
@@ -229,7 +260,7 @@ ModelBase.prototype.formatTimestamps = function formatTimestamps() {
  * @param {string} attribute - The name of the attribute to retrieve.
  * @returns {mixed} Attribute value.
  */
-ModelBase.prototype.get = function(attr) {
+ModelBase.prototype.get = function (attr) {
   return this.attributes[attr];
 };
 
@@ -257,10 +288,10 @@ ModelBase.prototype.get = function(attr) {
  *
  * @returns {mixed} Whatever value the parse method returns.
  */
-ModelBase.prototype.parsedIdAttribute = function() {
-  var parsedAttributes = this.parse({[this.idAttribute]: null})
-  return parsedAttributes && Object.keys(parsedAttributes)[0]
-}
+ModelBase.prototype.parsedIdAttribute = function () {
+  var parsedAttributes = this.parse((0, _defineProperty3.default)({}, this.idAttribute, null));
+  return parsedAttributes && Object.keys(parsedAttributes)[0];
+};
 
 /**
  * @method
@@ -276,42 +307,39 @@ ModelBase.prototype.parsedIdAttribute = function() {
  * @param {Object} [options.unset=false] Remove attributes from the model instead of setting them.
  * @returns {Model} This model.
  */
-ModelBase.prototype.set = function(key, val, options) {
+ModelBase.prototype.set = function (key, val, options) {
   if (key == null) return this;
-  let attrs;
+  var attrs = void 0;
 
   // Handle both `"key", value` and `{key: value}` -style arguments.
-  if (typeof key === 'object') {
+  if ((typeof key === 'undefined' ? 'undefined' : (0, _typeof3.default)(key)) === 'object') {
     attrs = key;
     options = val;
   } else {
     (attrs = {})[key] = val;
   }
-  options = clone(options) || {};
+  options = (0, _lodash.clone)(options) || {};
 
   // Extract attributes and options.
-  const unset   = options.unset;
-  const current = this.attributes;
-  const prev    = this._previousAttributes;
+  var unset = options.unset;
+  var current = this.attributes;
+  var prev = this._previousAttributes;
 
   // Check for changes of `id`.
-  if (this.idAttribute in attrs)
-    this.id = attrs[this.idAttribute];
-  else if (this.parsedIdAttribute() in attrs)
-    this.id = attrs[this.parsedIdAttribute()];
+  if (this.idAttribute in attrs) this.id = attrs[this.idAttribute];else if (this.parsedIdAttribute() in attrs) this.id = attrs[this.parsedIdAttribute()];
 
   // For each `set` attribute, update or delete the current value.
-  for (const attr in attrs) {
+  for (var attr in attrs) {
     val = attrs[attr];
-    if (!_.isEqual(prev[attr], val)) {
+    if (!_lodash2.default.isEqual(prev[attr], val)) {
       this.changed[attr] = val;
     } else {
       delete this.changed[attr];
     }
     if (unset) {
-      delete current[attr]
+      delete current[attr];
     } else {
-      current[attr] = val
+      current[attr] = val;
     }
   }
   return this;
@@ -332,7 +360,7 @@ ModelBase.prototype.set = function(key, val, options) {
  * var modelB = new bookshelf.Model({id: 1});
  * modelB.isNew(); // false
  */
-ModelBase.prototype.isNew = function() {
+ModelBase.prototype.isNew = function () {
   return this.id == null;
 };
 
@@ -365,9 +393,16 @@ ModelBase.prototype.isNew = function() {
  * @param {Boolean}    [options.omitPivot=false] Exclude pivot values.
  * @returns {Object} Serialized model as a plain object.
  */
-ModelBase.prototype.serialize = function(options = {}) {
-  const { shallow = false, omitPivot = false, omitNew = false } = options;
-  const { attributes } = this;
+ModelBase.prototype.serialize = function () {
+  var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+  var _options$shallow = options.shallow,
+      shallow = _options$shallow === undefined ? false : _options$shallow,
+      _options$omitPivot = options.omitPivot,
+      omitPivot = _options$omitPivot === undefined ? false : _options$omitPivot,
+      _options$omitNew = options.omitNew,
+      omitNew = _options$omitNew === undefined ? false : _options$omitNew;
+  var attributes = this.attributes;
+
 
   if (omitNew && this.isNew()) {
     return null;
@@ -375,25 +410,23 @@ ModelBase.prototype.serialize = function(options = {}) {
 
   if (!shallow) {
 
-    let relations = mapValues(this.relations, (relation, key) =>
-      relation.toJSON != null
-        ? relation.toJSON(options)
-        : relation
-    );
+    var relations = (0, _lodash.mapValues)(this.relations, function (relation, key) {
+      return relation.toJSON != null ? relation.toJSON(options) : relation;
+    });
 
     // Omit null relations from the omitNew option
-    relations = _.omitBy(relations, _.isNull);
+    relations = _lodash2.default.omitBy(relations, _lodash2.default.isNull);
 
-    const pivot = this.pivot && !omitPivot && this.pivot.attributes;
-    const pivotAttributes = mapKeys(pivot, (value, key) =>
-      `${PIVOT_PREFIX}${key}`
-    );
+    var pivot = this.pivot && !omitPivot && this.pivot.attributes;
+    var pivotAttributes = (0, _lodash.mapKeys)(pivot, function (value, key) {
+      return '' + _constants.PIVOT_PREFIX + key;
+    });
 
-    return { ...attributes, ...relations, ...pivotAttributes };
+    return (0, _extends3.default)({}, attributes, relations, pivotAttributes);
   }
 
-  return { ...attributes };
-}
+  return (0, _extends3.default)({}, attributes);
+};
 
 /**
  * @method
@@ -406,7 +439,7 @@ ModelBase.prototype.serialize = function(options = {}) {
  *
  * @param {Object=} options Options passed to {@link Model#serialize}.
  */
-ModelBase.prototype.toJSON = function(options) {
+ModelBase.prototype.toJSON = function (options) {
   return this.serialize(options);
 };
 
@@ -415,7 +448,7 @@ ModelBase.prototype.toJSON = function(options) {
  * @private
  * @returns String representation of the object.
  */
-ModelBase.prototype.toString = function() {
+ModelBase.prototype.toString = function () {
   return '[Object Model]';
 };
 
@@ -425,8 +458,8 @@ ModelBase.prototype.toString = function() {
  * @param {string} attribute The attribute to escape.
  * @returns {string} HTML-escaped value of an attribute.
  */
-ModelBase.prototype.escape = function(key) {
-  return _.escape(this.get(key));
+ModelBase.prototype.escape = function (key) {
+  return _lodash2.default.escape(this.get(key));
 };
 
 /**
@@ -436,7 +469,7 @@ ModelBase.prototype.escape = function(key) {
  * @param {string} attribute The attribute to check.
  * @returns {Boolean} True if `attribute` is set, otherwise `false`.
  */
-ModelBase.prototype.has = function(attr) {
+ModelBase.prototype.has = function (attr) {
   return this.get(attr) != null;
 };
 
@@ -472,7 +505,7 @@ ModelBase.prototype.has = function(attr) {
  * @param {Object} attributes Hash of attributes to parse.
  * @returns {Object} Parsed attributes.
  */
-ModelBase.prototype.parse = identity;
+ModelBase.prototype.parse = _lodash.identity;
 
 /**
  * @method
@@ -489,8 +522,8 @@ ModelBase.prototype.parse = identity;
  * @param attribute Attribute to unset.
  * @returns {Model} This model.
  */
-ModelBase.prototype.unset = function(attr, options) {
-  return this.set(attr, void 0, _.extend({}, options, {unset: true}));
+ModelBase.prototype.unset = function (attr, options) {
+  return this.set(attr, void 0, _lodash2.default.extend({}, options, { unset: true }));
 };
 
 /**
@@ -498,9 +531,11 @@ ModelBase.prototype.unset = function(attr, options) {
  * @description Clear all attributes on the model.
  * @returns {Model} This model.
  */
-ModelBase.prototype.clear = function(options) {
-  const undefinedKeys = mapValues(this.attributes, () => undefined);
-  return this.set(undefinedKeys, { ...options, unset: true });
+ModelBase.prototype.clear = function (options) {
+  var undefinedKeys = (0, _lodash.mapValues)(this.attributes, function () {
+    return undefined;
+  });
+  return this.set(undefinedKeys, (0, _extends3.default)({}, options, { unset: true }));
 };
 
 /**
@@ -526,7 +561,7 @@ ModelBase.prototype.clear = function(options) {
  * @param {Object} attributes The attributes to be converted.
  * @returns {Object} Formatted attributes.
  */
-ModelBase.prototype.format = identity;
+ModelBase.prototype.format = _lodash.identity;
 
 /**
  * @method
@@ -553,7 +588,7 @@ ModelBase.prototype.format = identity;
  * @returns {Model|Collection|undefined} The specified relation as defined by a
  *   method on the model, or undefined if it does not exist.
  */
-ModelBase.prototype.related = function(name) {
+ModelBase.prototype.related = function (name) {
   return this.relations[name] || (this[name] ? this.relations[name] = this[name]() : void 0);
 };
 
@@ -566,11 +601,13 @@ ModelBase.prototype.related = function(name) {
  *
  * @returns {Model} Cloned instance of this model.
  */
-ModelBase.prototype.clone = function() {
-  const model = new this.constructor(this.attributes);
-  assign(model.relations, mapValues(this.relations, r => r.clone()));
-  model._previousAttributes = clone(this._previousAttributes);
-  model.changed = clone(this.changed);
+ModelBase.prototype.clone = function () {
+  var model = new this.constructor(this.attributes);
+  (0, _lodash.assign)(model.relations, (0, _lodash.mapValues)(this.relations, function (r) {
+    return r.clone();
+  }));
+  model._previousAttributes = (0, _lodash.clone)(this._previousAttributes);
+  model.changed = (0, _lodash.clone)(this.changed);
   return model;
 };
 
@@ -586,16 +623,18 @@ ModelBase.prototype.clone = function() {
  *
  * @returns {string} Either `'insert'` or `'update'`.
  */
-ModelBase.prototype.saveMethod = function({ method = null, patch = false } = {}) {
+ModelBase.prototype.saveMethod = function () {
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+      _ref$method = _ref.method,
+      method = _ref$method === undefined ? null : _ref$method,
+      _ref$patch = _ref.patch,
+      patch = _ref$patch === undefined ? false : _ref$patch;
+
   if (patch) {
-    if (method == 'insert') throw new TypeError(
-      `Cannot accept incompatible options: methods=${method}, patch=${patch}`
-    );
+    if (method == 'insert') throw new TypeError('Cannot accept incompatible options: methods=' + method + ', patch=' + patch);
     method = 'update';
   }
-  return (patch && 'update' || method) == null
-    ? this.isNew() ? 'insert' : 'update'
-    : method.toLowerCase();
+  return (patch && 'update' || method) == null ? this.isNew() ? 'insert' : 'update' : method.toLowerCase();
 };
 
 /**
@@ -610,9 +649,9 @@ ModelBase.prototype.saveMethod = function({ method = null, patch = false } = {})
  *
  * @returns {Array<string>} The two timestamp key names.
  */
-ModelBase.prototype.getTimestampKeys = function() {
-  return Array.isArray(this.hasTimestamps) ? this.hasTimestamps : DEFAULT_TIMESTAMP_KEYS;
-}
+ModelBase.prototype.getTimestampKeys = function () {
+  return Array.isArray(this.hasTimestamps) ? this.hasTimestamps : _constants.DEFAULT_TIMESTAMP_KEYS;
+};
 
 /**
  * @method
@@ -637,15 +676,20 @@ ModelBase.prototype.getTimestampKeys = function() {
  *   updateing the timestamps, i.e. if something other than `new Date()` should be used.
  * @returns {Object} A hash of timestamp attributes that were set.
  */
-ModelBase.prototype.timestamp = function(options) {
+ModelBase.prototype.timestamp = function (options) {
   if (!this.hasTimestamps) return {};
 
-  const now          = (options || {}).date ? new Date(options.date) : new Date();
-  const attributes   = {};
-  const method       = this.saveMethod(options);
-  const [createdAtKey, updatedAtKey] = this.getTimestampKeys();
-  const isNewModel = method === 'insert';
-  const setUpdatedAt = updatedAtKey && this.hasChanged(updatedAtKey)
+  var now = (options || {}).date ? new Date(options.date) : new Date();
+  var attributes = {};
+  var method = this.saveMethod(options);
+
+  var _getTimestampKeys = this.getTimestampKeys(),
+      _getTimestampKeys2 = (0, _slicedToArray3.default)(_getTimestampKeys, 2),
+      createdAtKey = _getTimestampKeys2[0],
+      updatedAtKey = _getTimestampKeys2[1];
+
+  var isNewModel = method === 'insert';
+  var setUpdatedAt = updatedAtKey && this.hasChanged(updatedAtKey);
 
   if (updatedAtKey && (isNewModel && !setUpdatedAt || this.hasChanged() && !setUpdatedAt)) {
     attributes[updatedAtKey] = now;
@@ -655,7 +699,7 @@ ModelBase.prototype.timestamp = function(options) {
     attributes[createdAtKey] = now;
   }
 
-  this.set(attributes, _.extend(options, {silent: true}));
+  this.set(attributes, _lodash2.default.extend(options, { silent: true }));
 
   return attributes;
 };
@@ -674,9 +718,9 @@ ModelBase.prototype.timestamp = function(options) {
  * `true` if any attribute has changed. Or, if `attribute` was specified, true
  * if it has changed.
  */
-ModelBase.prototype.hasChanged = function(attr) {
-  if (attr == null) return !_.isEmpty(this.changed);
-  return _.has(this.changed, attr);
+ModelBase.prototype.hasChanged = function (attr) {
+  if (attr == null) return !_lodash2.default.isEmpty(this.changed);
+  return _lodash2.default.has(this.changed, attr);
 };
 
 /**
@@ -689,7 +733,7 @@ ModelBase.prototype.hasChanged = function(attr) {
  * @param {string} attribute The attribute to check
  * @returns {mixed} The previous value
  */
-ModelBase.prototype.previous = function(attribute) {
+ModelBase.prototype.previous = function (attribute) {
   return this._previousAttributes[attribute];
 };
 
@@ -704,8 +748,8 @@ ModelBase.prototype.previous = function(attribute) {
  *
  * @returns {Object} The attributes as they were before the last change.
  */
-ModelBase.prototype.previousAttributes = function() {
-  return clone(this._previousAttributes);
+ModelBase.prototype.previousAttributes = function () {
+  return (0, _lodash.clone)(this._previousAttributes);
 };
 
 /**
@@ -718,8 +762,8 @@ ModelBase.prototype.previousAttributes = function() {
  *
  * @returns {Model} This model.
  */
-ModelBase.prototype._reset = function() {
-  this._previousAttributes = clone(this.attributes);
+ModelBase.prototype._reset = function () {
+  this._previousAttributes = (0, _lodash.clone)(this.attributes);
   this.changed = Object.create(null);
   return this;
 };
@@ -749,12 +793,12 @@ ModelBase.prototype._reset = function() {
  * @see http://lodash.com/docs/#omit
  */
 // "_" methods that we want to implement on the Model.
-const modelMethods = ['keys', 'values', 'toPairs', 'invert', 'pick', 'omit'];
+var modelMethods = ['keys', 'values', 'toPairs', 'invert', 'pick', 'omit'];
 
 // Mix in each "_" method as a proxy to `Model#attributes`.
-_.each(modelMethods, function(method) {
-  ModelBase.prototype[method] = function() {
-    return _[method](this.attributes, ...arguments);
+_lodash2.default.each(modelMethods, function (method) {
+  ModelBase.prototype[method] = function () {
+    return _lodash2.default[method].apply(_lodash2.default, [this.attributes].concat(Array.prototype.slice.call(arguments)));
   };
 });
 

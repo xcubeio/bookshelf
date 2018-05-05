@@ -1,9 +1,24 @@
-import Promise from 'bluebird';
-import { remove, assign, noop } from 'lodash';
+'use strict';
 
-const DEFAULT_LIMIT = 10;
-const DEFAULT_OFFSET = 0;
-const DEFAULT_PAGE = 1;
+var _slicedToArray2 = require('babel-runtime/helpers/slicedToArray');
+
+var _slicedToArray3 = _interopRequireDefault(_slicedToArray2);
+
+var _objectWithoutProperties2 = require('babel-runtime/helpers/objectWithoutProperties');
+
+var _objectWithoutProperties3 = _interopRequireDefault(_objectWithoutProperties2);
+
+var _bluebird = require('bluebird');
+
+var _bluebird2 = _interopRequireDefault(_bluebird);
+
+var _lodash = require('lodash');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var DEFAULT_LIMIT = 10;
+var DEFAULT_OFFSET = 0;
+var DEFAULT_PAGE = 1;
 
 /**
  * Exports a plugin to pass into the bookshelf instance, i.e.:
@@ -29,8 +44,8 @@ const DEFAULT_PAGE = 1;
  *
  * See methods below for details.
  */
-module.exports = function paginationPlugin (bookshelf) {
-  const Model = bookshelf.Model;
+module.exports = function paginationPlugin(bookshelf) {
+  var Model = bookshelf.Model;
   /**
    * In order to use this function, you must have the {@link
    * https://github.com/bookshelf/bookshelf/wiki/Plugin:-Pagination Pagination}
@@ -101,22 +116,30 @@ module.exports = function paginationPlugin (bookshelf) {
    *    {@link Model#fetchAll}
    * @returns {Promise<Model|null>}
    */
-  function fetchPage (options = {}) {
-    const {page, pageSize, limit, offset, ...fetchOptions} = options;
-    const {transacting} = fetchOptions;
+  function fetchPage() {
+    var _this = this;
 
-    let usingPageSize = false; // usingPageSize = false means offset/limit, true means page/pageSize
-    let _page;
-    let _pageSize;
-    let _limit;
-    let _offset;
+    var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+    var page = options.page,
+        pageSize = options.pageSize,
+        limit = options.limit,
+        offset = options.offset,
+        fetchOptions = (0, _objectWithoutProperties3.default)(options, ['page', 'pageSize', 'limit', 'offset']);
+    var transacting = fetchOptions.transacting;
 
-    function ensureIntWithDefault (val, def) {
+
+    var usingPageSize = false; // usingPageSize = false means offset/limit, true means page/pageSize
+    var _page = void 0;
+    var _pageSize = void 0;
+    var _limit = void 0;
+    var _offset = void 0;
+
+    function ensureIntWithDefault(val, def) {
       if (!val) {
         return def;
       }
 
-      const _val = parseInt(val);
+      var _val = parseInt(val);
       if (Number.isNaN(_val)) {
         return def;
       }
@@ -138,68 +161,64 @@ module.exports = function paginationPlugin (bookshelf) {
       _offset = ensureIntWithDefault(offset, DEFAULT_OFFSET);
     }
 
-    const isModel = this instanceof Model;
-    const [fetchMethodName, targetModel] = isModel
-      ? ['fetchAll', this.constructor]
-      : ['fetch', this.target || this.model];
-    const {tableName, idAttribute = 'id'} = targetModel.prototype;
-    const targetIdColumn = `${tableName}.${idAttribute}`;
+    var isModel = this instanceof Model;
 
-    const paginate = () => {
+    var _ref = isModel ? ['fetchAll', this.constructor] : ['fetch', this.target || this.model],
+        _ref2 = (0, _slicedToArray3.default)(_ref, 2),
+        fetchMethodName = _ref2[0],
+        targetModel = _ref2[1];
+
+    var _targetModel$prototyp = targetModel.prototype,
+        tableName = _targetModel$prototyp.tableName,
+        _targetModel$prototyp2 = _targetModel$prototyp.idAttribute,
+        idAttribute = _targetModel$prototyp2 === undefined ? 'id' : _targetModel$prototyp2;
+
+    var targetIdColumn = tableName + '.' + idAttribute;
+
+    var paginate = function paginate() {
       // const pageQuery = clone(this.query());
-      const pager = this.clone();
+      var pager = _this.clone();
 
-      return pager
-
-        .query(qb => {
-          assign(qb, this.query().clone());
-          qb.limit.apply(qb, [_limit]);
-          qb.offset.apply(qb, [_offset]);
-          return null;
-        })[fetchMethodName](fetchOptions);
+      return pager.query(function (qb) {
+        (0, _lodash.assign)(qb, _this.query().clone());
+        qb.limit.apply(qb, [_limit]);
+        qb.offset.apply(qb, [_offset]);
+        return null;
+      })[fetchMethodName](fetchOptions);
     };
 
-    const count = () => {
-      const notNeededQueries = [
-        'orderByBasic',
-        'orderByRaw',
-        'groupByBasic',
-        'groupByRaw'
-      ];
-      const counter = this.clone();
+    var count = function count() {
+      var notNeededQueries = ['orderByBasic', 'orderByRaw', 'groupByBasic', 'groupByRaw'];
+      var counter = _this.clone();
 
-      return counter.query(qb => {
-        assign(qb, this.query().clone());
+      return counter.query(function (qb) {
+        (0, _lodash.assign)(qb, _this.query().clone());
 
         // Remove grouping and ordering. Ordering is unnecessary
         // for a count, and grouping returns the entire result set
         // What we want instead is to use `DISTINCT`
-        remove(qb._statements, statement => {
-          return (notNeededQueries.indexOf(statement.type) > -1) ||
-            statement.grouping === 'columns';
+        (0, _lodash.remove)(qb._statements, function (statement) {
+          return notNeededQueries.indexOf(statement.type) > -1 || statement.grouping === 'columns';
         });
         if (!isModel && counter.relatedData) {
           // Remove joining columns that break COUNT operation.
           // eg. pivotal coulmns for belongsToMany relation.
-          counter.relatedData.joinColumns = noop;
+          counter.relatedData.joinColumns = _lodash.noop;
         }
         qb.count.apply(qb, [targetIdColumn]);
+      })[fetchMethodName]({ transacting: transacting }).then(function (result) {
 
-    })[fetchMethodName]({transacting}).then(result => {
-
-        const metadata = usingPageSize
-          ? {page: _page, pageSize: _limit}
-          : {offset: _offset, limit: _limit};
+        var metadata = usingPageSize ? { page: _page, pageSize: _limit } : { offset: _offset, limit: _limit };
 
         if (result && result.length == 1) {
           // We shouldn't have to do this, instead it should be
           // result.models[0].get('count')
           // but SQLite uses a really strange key name.
-          const count = result.models[0];
-          const keys = Object.keys(count.attributes);
+          var _count = result.models[0];
+          var keys = Object.keys(_count.attributes);
           if (keys.length === 1) {
-            const key = Object.keys(count.attributes)[0];
-            metadata.rowCount = parseInt(count.attributes[key]);
+            var key = Object.keys(_count.attributes)[0];
+            metadata.rowCount = parseInt(_count.attributes[key]);
           }
         }
 
@@ -207,19 +226,24 @@ module.exports = function paginationPlugin (bookshelf) {
       });
     };
 
-    return Promise.join(paginate(), count())
-      .then(([rows, metadata]) => {
-        const pageCount = Math.ceil(metadata.rowCount / _limit);
-        const pageData = assign(metadata, {pageCount});
-        return assign(rows, {pagination: pageData});
-      });
+    return _bluebird2.default.join(paginate(), count()).then(function (_ref3) {
+      var _ref4 = (0, _slicedToArray3.default)(_ref3, 2),
+          rows = _ref4[0],
+          metadata = _ref4[1];
+
+      var pageCount = Math.ceil(metadata.rowCount / _limit);
+      var pageData = (0, _lodash.assign)(metadata, { pageCount: pageCount });
+      return (0, _lodash.assign)(rows, { pagination: pageData });
+    });
   }
 
   bookshelf.Model.prototype.fetchPage = fetchPage;
 
-  bookshelf.Model.fetchPage = function (...args) {
-    return this.forge().fetchPage(...args);
-  }
+  bookshelf.Model.fetchPage = function () {
+    var _forge;
+
+    return (_forge = this.forge()).fetchPage.apply(_forge, arguments);
+  };
 
   bookshelf.Collection.prototype.fetchPage = fetchPage;
-}
+};
