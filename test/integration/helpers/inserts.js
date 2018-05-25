@@ -1,11 +1,9 @@
 var Promise = global.testPromise;
 
 module.exports = function(bookshelf) {
-
   var knex = bookshelf.knex;
 
   return Promise.all([
-
     knex('sites').insert([{
       name: 'knexjs.org'
     }, {
@@ -265,8 +263,15 @@ module.exports = function(bookshelf) {
     knex('backup_types').insert([
       {id: 0, name: 'standard'},
       {id: 1, name: 'enhanced'} // We need to explicitly set the id to 1 otherwise MySQL will get confused
-    ])
+    ]),
 
+    knex('organization').insert([{organization_name: 'Test Organization'}, {organization_name: 'Duplicates'}]),
+
+    knex('members').insert([
+      {id: 1, organization_id: 1, name: 'Shuri'},
+      {id: 2, organization_id: 2, name: 'Bob'},
+      {id: 2, organization_id: 2, name: 'Alice'}
+    ])
   ]).then(function() {
     if (knex.client.dialect !== 'postgresql') return;
 

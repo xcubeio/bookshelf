@@ -44,6 +44,11 @@ module.exports = function(Bookshelf) {
     var JoinModel   = Models.JoinModel;
     var Locale = Models.Locale;
     var Translation = Models.Translation;
+    var Organization = Models.OrgModel.extend({
+      members: function() {
+        return this.hasMany(Models.Member, 'organization_id')
+      }
+    })
 
     describe('Bookshelf Relations', function() {
       describe('Standard Relations - Models', function() {
@@ -86,11 +91,27 @@ module.exports = function(Bookshelf) {
           }).then(checkTest(this));
         });
 
+        it('does not load "hasOne" relationship when it doesn\'t exist (site -> meta)', function() {
+          return new Site({id: 3}).fetch({withRelated: ['meta']}).then(function(site) {
+            expect(site.toJSON()).to.not.have.property('meta')
+          });
+        });
+
         it('eager loads "hasMany" relationships correctly (site -> authors, blogs)', function() {
           return new Site({id: 1}).fetch({
             withRelated: ['authors', 'blogs']
           }).then(checkTest(this));
         });
+
+        it('eager loads "hasMany" relationships when children have duplicate ids', function() {
+          return new Organization({id: 2}).fetch({
+            withRelated: ['members'],
+            merge: false,
+            remove: false
+          }).then(function(organization) {
+            expect(organization.related('members').pluck('name')).to.include.members(['Alice', 'Bob']);
+          })
+        })
 
         it('eager loads "belongsTo" relationships correctly (blog -> site)', function() {
           return new Blog({id: 3}).fetch({
@@ -240,6 +261,12 @@ module.exports = function(Bookshelf) {
               result.models[0].related('tags').relatedData.parentId.should.eql(1);
           });
         });
+
+        it('when parent model has custom id attribute and a parse method that mutates it', function() {
+          return Organization.forge({id: 1}).fetch({withRelated: ['members']}).then(function(organization) {
+            expect(organization.related('members').length).to.be.above(0);
+          })
+        })
       });
 
       describe('Nested Eager Loading - Models', function() {
